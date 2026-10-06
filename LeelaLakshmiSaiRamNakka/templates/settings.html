@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Settings - AI Support Desk{% endblock %}
+{% block page_name %}Settings{% endblock %}
+
+{% block content %}
+<div>
+    <h1 class="text-2xl font-extrabold tracking-tight">Settings</h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400">Manage your profile, password, and notification preferences.</p>
+</div>
+
+<div class="bg-white dark:bg-darkCard border border-slate-200 dark:border-darkBorder rounded-2xl p-6 shadow-sm space-y-6 max-w-3xl">
+    <section class="space-y-4">
+        <h3 class="font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-darkBorder/60 pb-2">Profile</h3>
+        <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Display name</label>
+                <input type="text" id="settings-username" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-darkBorder rounded-xl text-xs dark:text-white" value="{{ current_username }}">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Role</label>
+                <input type="text" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-darkBorder rounded-xl text-xs text-slate-400 cursor-not-allowed" value="{{ current_role }}" disabled>
+            </div>
+        </div>
+        <div class="flex justify-end">
+            <button onclick="saveProfile()" id="save-profile-btn" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold transition-colors">Save profile</button>
+        </div>
+    </section>
+
+    <section class="space-y-4">
+        <h3 class="font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-darkBorder/60 pb-2">Change password</h3>
+        <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">New password</label>
+                <input type="password" id="new-password" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-darkBorder rounded-xl text-xs dark:text-white" placeholder="••••••••">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Confirm new password</label>
+                <input type="password" id="confirm-password" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-darkBorder rounded-xl text-xs dark:text-white" placeholder="••••••••">
+            </div>
+        </div>
+        <div class="flex justify-end">
+            <button onclick="changePassword()" id="save-password-btn" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold transition-colors">Update password</button>
+        </div>
+    </section>
+
+    <section class="space-y-4">
+        <h3 class="font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-darkBorder/60 pb-2">Notifications</h3>
+        <div class="space-y-3">
+            <label class="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" id="pref-email-alerts" class="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-brand-600 dark:bg-slate-900 mt-0.5">
+                <span class="text-xs">
+                    <strong class="block text-slate-800 dark:text-slate-200">Email me when a ticket I raised is resolved</strong>
+                </span>
+            </label>
+            <label class="flex items-start gap-3 cursor-pointer">
+                <input type="checkbox" id="pref-audit-sync" class="h-4 w-4 rounded border-slate-300 dark:border-slate-700 text-brand-600 dark:bg-slate-900 mt-0.5">
+                <span class="text-xs">
+                    <strong class="block text-slate-800 dark:text-slate-200">Keep my chat history with the AI agent</strong>
+                </span>
+            </label>
+        </div>
+        <div class="flex justify-end">
+            <button onclick="savePreferences()" id="save-prefs-btn" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-semibold transition-colors">Save preferences</button>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function loadPreferences() {
+        try {
+            const res = await apiFetch('/api/settings');
+            const data = await res.json();
+            document.getElementById('pref-email-alerts').checked = !!data.email_alerts;
+            document.getElementById('pref-audit-sync').checked = !!data.keep_chat_history;
+        } catch (err) { /* defaults stay unchecked */ }
+    }
+
+    async function saveProfile() {
+        const btn = document.getElementById('save-profile-btn');
+        btn.disabled = true;
+        try {
+            const res = await apiFetch('/api/settings/profile', {
+                method: 'PUT',
+                body: JSON.stringify({ username: document.getElementById('settings-username').value.trim() })
+            });
+            const data = await res.json();
+            if (!res.ok) { showToast(data.error || 'Could not update profile', 'error'); return; }
+            showToast('Profile updated.', 'success');
+        } catch (err) {
+            showToast('Could not reach the server.', 'error');
+        } finally { btn.disabled = false; }
+    }
+
+    async function changePassword() {
+        const pw = document.getElementById('new-password').value;
+        const confirm = document.getElementById('confirm-password').value;
+        if (!pw || pw.length < 6) { showToast('Password must be at least 6 characters.', 'error'); return; }
+        if (pw !== confirm) { showToast("Passwords don't match.", 'error'); return; }
+
+        const btn = document.getElementById('save-password-btn');
+        btn.disabled = true;
+        try {
+            const res = await apiFetch('/api/settings/password', { method: 'PUT', body: JSON.stringify({ password: pw }) });
+            const data = await res.json();
+            if (!res.ok) { showToast(data.error || 'Could not update password', 'error'); return; }
+            showToast('Password updated.', 'success');
+            document.getElementById('new-password').value = '';
+            document.getElementById('confirm-password').value = '';
+        } catch (err) {
+            showToast('Could not reach the server.', 'error');
+        } finally { btn.disabled = false; }
+    }
+
+    async function savePreferences() {
+        const btn = document.getElementById('save-prefs-btn');
+        btn.disabled = true;
+        try {
+            const res = await apiFetch('/api/settings', {
+                method: 'PUT',
+                body: JSON.stringify({
+                    email_alerts: document.getElementById('pref-email-alerts').checked,
+                    keep_chat_history: document.getElementById('pref-audit-sync').checked
+                })
+            });
+            if (!res.ok) { showToast('Could not save preferences', 'error'); return; }
+            showToast('Preferences saved.', 'success');
+        } catch (err) {
+            showToast('Could not reach the server.', 'error');
+        } finally { btn.disabled = false; }
+    }
+
+    loadPreferences();
+</script>
+{% endblock %}

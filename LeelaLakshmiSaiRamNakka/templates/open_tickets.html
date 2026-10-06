@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Open Tickets - AI Support Desk{% endblock %}
+{% block page_name %}Open Tickets{% endblock %}
+
+{% block content %}
+<div>
+    <h1 class="text-2xl font-extrabold tracking-tight">Ticket queue</h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400">Every ticket raised across the team, newest first.</p>
+</div>
+
+<!-- Filter bar -->
+<div class="bg-white dark:bg-darkCard p-4 rounded-xl border border-slate-200 dark:border-darkBorder flex flex-wrap gap-4 items-center justify-between">
+    <div class="flex flex-wrap gap-3 items-center">
+        <div class="relative">
+            <input type="text" id="search-queue" class="pl-8 pr-4 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-darkBorder rounded-lg text-xs w-56 dark:text-white" placeholder="Search title or employee...">
+            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-xs text-slate-400"></i>
+        </div>
+        <select id="department-filter" class="px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-darkBorder rounded-lg text-xs dark:text-white">
+            <option value="all">All departments</option>
+            <option>Engineering</option>
+            <option>HR & Personnel</option>
+            <option>Corporate Finance</option>
+            <option>Operations & Supply</option>
+            <option>Marketing</option>
+        </select>
+        <select id="status-filter" class="px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-darkBorder rounded-lg text-xs dark:text-white">
+            <option value="all">All statuses</option>
+            <option>Open</option>
+            <option>In Progress</option>
+            <option>Resolved</option>
+        </select>
+    </div>
+    <span class="text-xs text-slate-400 font-semibold">Showing <strong id="visible-count">0</strong> of <strong id="total-count">0</strong></span>
+</div>
+
+<!-- Table -->
+<div class="bg-white dark:bg-darkCard rounded-2xl border border-slate-200 dark:border-darkBorder overflow-hidden shadow-sm">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse" id="tickets-table">
+            <thead>
+                <tr class="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-darkBorder text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                    <th class="px-6 py-4">Ticket ID</th>
+                    <th class="px-6 py-4">Employee</th>
+                    <th class="px-6 py-4">Department</th>
+                    <th class="px-6 py-4">Subject</th>
+                    <th class="px-6 py-4">Priority</th>
+                    <th class="px-6 py-4">Status</th>
+                    <th class="px-6 py-4">Created</th>
+                    <th class="px-6 py-4 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="tickets-tbody" class="divide-y divide-slate-100 dark:divide-darkBorder/60 text-xs">
+                <tr><td colspan="8" class="px-6 py-10 text-center text-slate-400">Loading tickets...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Ticket detail modal -->
+<div id="ticket-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-white dark:bg-darkCard rounded-2xl border border-slate-200 dark:border-darkBorder shadow-2xl max-w-lg w-full p-6 space-y-4 fade-in">
+        <div class="flex items-start justify-between">
+            <h3 class="font-bold text-lg text-slate-900 dark:text-white" id="modal-title">Ticket</h3>
+            <button onclick="closeModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="text-xs text-slate-500 dark:text-slate-400 space-y-2" id="modal-body"></div>
+        <div class="flex gap-2 pt-2 border-t border-slate-100 dark:border-darkBorder/60">
+            <button onclick="updateStatus('In Progress')" class="flex-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-semibold text-xs py-2 rounded-xl hover:bg-blue-100">Mark in progress</button>
+            <button onclick="updateStatus('Resolved')" class="flex-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 font-semibold text-xs py-2 rounded-xl hover:bg-emerald-100">Mark resolved</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let allTickets = [];
+    let activeTicketId = null;
+
+    const priorityColors = {
+        High: 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-400',
+        Medium: 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-400',
+        Low: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+    };
+    const statusDot = {
+        'Open': 'bg-amber-500 animate-pulse',
+        'In Progress': 'bg-blue-500',
+        'Resolved': 'bg-emerald-500'
+    };
+
+    function renderRows(tickets) {
+        const tbody = document.getElementById('tickets-tbody');
+        if (!tickets.length) {
+            tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-10 text-center text-slate-400">No tickets match these filters.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = tickets.map(t => `
+            <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/20">
+                <td class="px-6 py-4 font-mono font-bold text-brand-600 dark:text-brand-400">#T-${t.id}</td>
+                <td class="px-6 py-4 font-medium">${t.employee_name}<div class="text-slate-400 font-mono text-[10px]">${t.employee_id}</div></td>
+                <td class="px-6 py-4 text-slate-500">${t.department}</td>
+                <td class="px-6 py-4 font-semibold text-slate-800 dark:text-slate-200 max-w-xs truncate">${t.title}</td>
+                <td class="px-6 py-4"><span class="px-2 py-0.5 rounded ${priorityColors[t.priority] || priorityColors.Low} text-[10px] font-bold">${t.priority}</span></td>
+                <td class="px-6 py-4"><span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full ${statusDot[t.status] || 'bg-slate-400'}"></span> ${t.status}</span></td>
+                <td class="px-6 py-4 text-slate-400 font-mono text-[10px]">${t.created_at.split(' ')[0]}</td>
+                <td class="px-6 py-4 text-right">
+                    <button class="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 p-1.5 rounded-lg text-slate-600 dark:text-slate-200" onclick="openModal(${t.id})"><i class="fa-solid fa-eye text-[11px]"></i></button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function applyFilters() {
+        const search = document.getElementById('search-queue').value.toLowerCase();
+        const dept = document.getElementById('department-filter').value;
+        const status = document.getElementById('status-filter').value;
+
+        const filtered = allTickets.filter(t => {
+            const matchesSearch = !search || t.title.toLowerCase().includes(search) || t.employee_name.toLowerCase().includes(search);
+            const matchesDept = dept === 'all' || t.department === dept;
+            const matchesStatus = status === 'all' || t.status === status;
+            return matchesSearch && matchesDept && matchesStatus;
+        });
+        renderRows(filtered);
+        document.getElementById('visible-count').textContent = filtered.length;
+    }
+
+    async function loadTickets() {
+        try {
+            const res = await apiFetch('/api/tickets');
+            allTickets = await res.json();
+            document.getElementById('total-count').textContent = allTickets.length;
+            applyFilters();
+        } catch (err) {
+            showToast('Could not load tickets.', 'error');
+        }
+    }
+
+    function openModal(id) {
+        const t = allTickets.find(x => x.id === id);
+        if (!t) return;
+        activeTicketId = id;
+        document.getElementById('modal-title').textContent = `#T-${t.id} — ${t.title}`;
+        document.getElementById('modal-body').innerHTML = `
+            <p><strong class="text-slate-700 dark:text-slate-200">Raised by:</strong> ${t.employee_name} (${t.employee_id}), ${t.department}</p>
+            <p><strong class="text-slate-700 dark:text-slate-200">Description:</strong> ${t.description}</p>
+            ${t.ai_summary ? `<p><strong class="text-slate-700 dark:text-slate-200">AI summary:</strong> ${t.ai_summary}</p>` : ''}
+            <p><strong class="text-slate-700 dark:text-slate-200">Status:</strong> ${t.status} &middot; <strong class="text-slate-700 dark:text-slate-200">Priority:</strong> ${t.priority}</p>
+        `;
+        document.getElementById('ticket-modal').classList.remove('hidden');
+        document.getElementById('ticket-modal').classList.add('flex');
+    }
+
+    function closeModal() {
+        document.getElementById('ticket-modal').classList.add('hidden');
+        document.getElementById('ticket-modal').classList.remove('flex');
+        activeTicketId = null;
+    }
+
+    async function updateStatus(status) {
+        if (!activeTicketId) return;
+        try {
+            await apiFetch(`/api/tickets/${activeTicketId}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+            showToast(`Ticket marked as ${status}.`, 'success');
+            closeModal();
+            loadTickets();
+        } catch (err) {
+            showToast('Could not update the ticket.', 'error');
+        }
+    }
+
+    document.getElementById('search-queue').addEventListener('input', applyFilters);
+    document.getElementById('department-filter').addEventListener('change', applyFilters);
+    document.getElementById('status-filter').addEventListener('change', applyFilters);
+
+    loadTickets();
+</script>
+{% endblock %}

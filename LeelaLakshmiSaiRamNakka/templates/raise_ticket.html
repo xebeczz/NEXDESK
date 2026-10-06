@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}Raise Ticket - AI Support Desk{% endblock %}
+{% block page_name %}Raise Ticket{% endblock %}
+
+{% block content %}
+<div>
+    <h1 class="text-2xl font-extrabold tracking-tight">Raise a ticket</h1>
+    <p class="text-sm text-slate-500 dark:text-slate-400">Describe your issue and the AI agent will suggest a fix before it reaches a human queue.</p>
+</div>
+
+<div class="grid md:grid-cols-12 gap-6 items-start">
+    <!-- Form -->
+    <div class="md:col-span-7 bg-white dark:bg-darkCard border border-slate-200 dark:border-darkBorder rounded-2xl p-6 shadow-sm space-y-4">
+        <form id="raise-ticket-form" class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Employee name</label>
+                    <input type="text" id="employee-name" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-darkBorder rounded-xl text-xs dark:text-white" placeholder="Jane Miller">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Employee ID</label>
+                    <input type="text" id="employee-id" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-darkBorder rounded-xl text-xs dark:text-white" placeholder="EMP-4100">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Department</label>
+                <select id="employee-dept" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-darkBorder rounded-xl text-xs dark:text-white">
+                    <option>Engineering</option>
+                    <option>HR & Personnel</option>
+                    <option>Corporate Finance</option>
+                    <option>Operations & Supply</option>
+                    <option>Marketing</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Ticket subject</label>
+                <input type="text" id="ticket-title" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-darkBorder rounded-xl text-xs dark:text-white" placeholder="E.g., Docker desktop crashes on startup">
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">Describe your issue</label>
+                <textarea id="ticket-desc" rows="4" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-darkBorder rounded-xl text-xs dark:text-white" placeholder="Include what you were doing, any error messages, and what you've already tried..."></textarea>
+            </div>
+
+            <button id="analyze-btn" type="submit" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-xl text-xs shadow-md transition-colors">
+                <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> <span id="analyze-btn-text">Analyze with AI Agent</span>
+            </button>
+        </form>
+    </div>
+
+    <!-- Diagnostic panel -->
+    <div id="diagnostic-panel" class="md:col-span-5 bg-slate-100 dark:bg-darkCard/40 border border-slate-200/60 dark:border-darkBorder rounded-2xl p-6 relative overflow-hidden transition-all duration-300 hidden">
+        <h3 class="font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-4">
+            <i class="fa-solid fa-robot text-brand-500"></i> AI analysis
+        </h3>
+
+        <div class="space-y-4">
+            <div>
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Summary</span>
+                <div class="mt-1 bg-white dark:bg-darkCard p-3 rounded-xl border border-slate-200/60 dark:border-darkBorder text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed whitespace-pre-line" id="diagnostic-summary"></div>
+            </div>
+
+            <div>
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Suggested next steps</span>
+                <div class="mt-1 bg-white dark:bg-darkCard p-3 rounded-xl border border-slate-200/60 dark:border-darkBorder text-xs text-slate-600 dark:text-slate-300 whitespace-pre-line" id="diagnostic-tip"></div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-200 dark:border-darkBorder">
+                <p class="text-xs font-bold text-slate-900 dark:text-white mb-3">Did this resolve your issue?</p>
+
+                <div class="flex gap-4 mb-4">
+                    <label class="flex items-center gap-2 text-xs font-semibold cursor-pointer">
+                        <input type="radio" name="resolved_check" value="yes" onclick="handleResolutionSelection(true)" class="h-4 w-4 text-brand-600 border-slate-300">
+                        <span>Yes, resolved</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-xs font-semibold cursor-pointer">
+                        <input type="radio" name="resolved_check" value="no" onclick="handleResolutionSelection(false)" class="h-4 w-4 text-brand-600 border-slate-300">
+                        <span>No, escalate it</span>
+                    </label>
+                </div>
+
+                <div id="resolved-ack" class="hidden p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-500/10 rounded-xl text-emerald-800 dark:text-emerald-300 text-xs font-bold">
+                    <i class="fa-solid fa-circle-check mr-1.5"></i> Marked as resolved. Thanks for confirming.
+                </div>
+
+                <div id="unresolved-action" class="hidden">
+                    <button onclick="submitToOpenQueue()" id="escalate-btn" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2 rounded-xl text-xs transition-colors">
+                        <i class="fa-solid fa-circle-exclamation mr-1.5"></i> Escalate to open tickets
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentTicketId = null;
+
+    document.getElementById('raise-ticket-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('analyze-btn');
+        const btnText = document.getElementById('analyze-btn-text');
+        btn.disabled = true;
+        btnText.textContent = 'Analyzing...';
+
+        const payload = {
+            employee_name: document.getElementById('employee-name').value.trim(),
+            employee_id: document.getElementById('employee-id').value.trim(),
+            department: document.getElementById('employee-dept').value,
+            title: document.getElementById('ticket-title').value.trim(),
+            description: document.getElementById('ticket-desc').value.trim()
+        };
+
+        try {
+            const res = await apiFetch('/api/tickets', { method: 'POST', body: JSON.stringify(payload) });
+            const data = await res.json();
+            if (!res.ok) {
+                showToast(data.error || 'Could not submit ticket', 'error');
+                return;
+            }
+
+            currentTicketId = data.id;
+            document.getElementById('diagnostic-summary').textContent = data.ai_summary;
+            document.getElementById('diagnostic-tip').textContent = data.ai_recommendation;
+
+            const panel = document.getElementById('diagnostic-panel');
+            panel.classList.remove('hidden');
+            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            showToast('AI agent finished its analysis.', 'success');
+        } catch (err) {
+            showToast('Could not reach the server. Please try again.', 'error');
+        } finally {
+            btn.disabled = false;
+            btnText.textContent = 'Analyze with AI Agent';
+        }
+    });
+
+    function handleResolutionSelection(resolved) {
+        document.getElementById('resolved-ack').classList.toggle('hidden', !resolved);
+        document.getElementById('unresolved-action').classList.toggle('hidden', resolved);
+        if (resolved && currentTicketId) {
+            apiFetch(`/api/tickets/${currentTicketId}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ status: 'Resolved' })
+            }).catch(() => {});
+        }
+    }
+
+    async function submitToOpenQueue() {
+        if (!currentTicketId) return;
+        const btn = document.getElementById('escalate-btn');
+        btn.disabled = true;
+        try {
+            await apiFetch(`/api/tickets/${currentTicketId}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ status: 'Open' })
+            });
+            showToast('Escalated to the open tickets queue.', 'info');
+            setTimeout(() => { window.location.href = "{{ url_for('open_tickets_page') }}"; }, 1200);
+        } catch (err) {
+            showToast('Could not escalate the ticket.', 'error');
+            btn.disabled = false;
+        }
+    }
+</script>
+{% endblock %}
