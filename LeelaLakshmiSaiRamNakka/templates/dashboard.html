@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - AI Support Desk{% endblock %}
+{% block page_name %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-200 dark:border-darkBorder">
+    <div>
+        <h1 class="text-2xl font-extrabold tracking-tight">Support overview</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400">Live counts from your ticket queue.</p>
+    </div>
+    <a href="{{ url_for('raise_ticket_page') }}" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-md shadow-brand-500/10 inline-flex items-center gap-2">
+        <i class="fa-solid fa-plus text-xs"></i> Raise a ticket
+    </a>
+</div>
+
+<!-- Metrics Grid -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-6" id="metrics-grid">
+    <div class="p-6 bg-white dark:bg-darkCard rounded-2xl border border-slate-200 dark:border-darkBorder flex items-center justify-between shadow-sm">
+        <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Total tickets</span>
+            <p class="text-3xl font-extrabold mt-1"><span class="skeleton rounded" id="stat-total">&nbsp;&nbsp;&nbsp;</span></p>
+        </div>
+        <div class="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex items-center justify-center rounded-xl text-xl">
+            <i class="fa-solid fa-list"></i>
+        </div>
+    </div>
+
+    <div class="p-6 bg-white dark:bg-darkCard rounded-2xl border border-slate-200 dark:border-darkBorder flex items-center justify-between shadow-sm">
+        <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Open</span>
+            <p class="text-3xl font-extrabold mt-1 text-amber-500"><span class="skeleton rounded" id="stat-open">&nbsp;&nbsp;&nbsp;</span></p>
+        </div>
+        <div class="w-12 h-12 bg-amber-50 dark:bg-amber-900/20 text-amber-500 flex items-center justify-center rounded-xl text-xl">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+    </div>
+
+    <div class="p-6 bg-white dark:bg-darkCard rounded-2xl border border-slate-200 dark:border-darkBorder flex items-center justify-between shadow-sm">
+        <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">In progress</span>
+            <p class="text-3xl font-extrabold mt-1 text-blue-500"><span class="skeleton rounded" id="stat-progress">&nbsp;&nbsp;&nbsp;</span></p>
+        </div>
+        <div class="w-12 h-12 bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex items-center justify-center rounded-xl text-xl">
+            <i class="fa-solid fa-spinner"></i>
+        </div>
+    </div>
+
+    <div class="p-6 bg-white dark:bg-darkCard rounded-2xl border border-slate-200 dark:border-darkBorder flex items-center justify-between shadow-sm">
+        <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Resolved</span>
+            <p class="text-3xl font-extrabold mt-1 text-emerald-500"><span class="skeleton rounded" id="stat-resolved">&nbsp;&nbsp;&nbsp;</span></p>
+        </div>
+        <div class="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 flex items-center justify-center rounded-xl text-xl">
+            <i class="fa-solid fa-circle-check"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Recent tickets + AI agent shortcut -->
+<div class="grid lg:grid-cols-12 gap-6">
+    <div class="lg:col-span-8 bg-white dark:bg-darkCard border border-slate-200 dark:border-darkBorder rounded-2xl p-6 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-bold text-slate-900 dark:text-white">Recent tickets</h3>
+            <a href="{{ url_for('open_tickets_page') }}" class="text-xs text-brand-600 dark:text-brand-400 hover:underline">View all</a>
+        </div>
+        <div id="recent-tickets" class="divide-y divide-slate-100 dark:divide-darkBorder/60 text-xs">
+            <p class="py-6 text-center text-slate-400">Loading recent tickets...</p>
+        </div>
+    </div>
+
+    <div class="lg:col-span-4 bg-white dark:bg-darkCard border border-slate-200 dark:border-darkBorder rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+        <div>
+            <h3 class="font-bold text-slate-900 dark:text-white mb-2">Need a quick answer?</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Ask the AI agent about hardware, credentials, or software issues before filing a ticket.</p>
+        </div>
+        <div class="mt-6 pt-4 border-t border-slate-100 dark:border-darkBorder/60 flex flex-col gap-2">
+            <a href="{{ url_for('ai_agent_page') }}" class="w-full text-center bg-brand-600 hover:bg-brand-700 text-white font-semibold py-2.5 rounded-xl text-xs transition-colors">
+                <i class="fa-solid fa-robot mr-1.5"></i> Consult the AI Agent
+            </a>
+            <a href="{{ url_for('raise_ticket_page') }}" class="w-full text-center bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold py-2.5 rounded-xl text-xs transition-colors">
+                Raise a ticket instead
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const priorityColors = {
+        High: 'bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-400',
+        Medium: 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-400',
+        Low: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+    };
+
+    function timeAgo(isoString) {
+        const diffMs = Date.now() - new Date(isoString + 'Z').getTime();
+        const mins = Math.floor(diffMs / 60000);
+        if (mins < 1) return 'just now';
+        if (mins < 60) return `${mins} min ago`;
+        const hrs = Math.floor(mins / 60);
+        if (hrs < 24) return `${hrs} hour${hrs > 1 ? 's' : ''} ago`;
+        const days = Math.floor(hrs / 24);
+        return `${days} day${days > 1 ? 's' : ''} ago`;
+    }
+
+    async function loadDashboard() {
+        try {
+            const res = await apiFetch('/api/dashboard/stats');
+            if (!res.ok) throw new Error('Failed to load stats');
+            const data = await res.json();
+
+            document.getElementById('stat-total').textContent = data.total;
+            document.getElementById('stat-open').textContent = data.open;
+            document.getElementById('stat-progress').textContent = data.in_progress;
+            document.getElementById('stat-resolved').textContent = data.resolved;
+            document.querySelectorAll('#metrics-grid .skeleton').forEach(el => el.classList.remove('skeleton'));
+
+            const container = document.getElementById('recent-tickets');
+            if (!data.recent.length) {
+                container.innerHTML = '<p class="py-6 text-center text-slate-400">No tickets yet. Raised tickets will show up here.</p>';
+                return;
+            }
+            container.innerHTML = data.recent.map(t => `
+                <div class="py-3 flex items-center justify-between gap-4">
+                    <div class="min-w-0">
+                        <p class="font-bold text-slate-800 dark:text-slate-200 truncate">${t.title}</p>
+                        <p class="text-[10px] text-slate-400 mt-0.5">#T-${t.id} • ${t.department} • ${timeAgo(t.created_at)}</p>
+                    </div>
+                    <span class="px-2 py-1 rounded ${priorityColors[t.priority] || priorityColors.Low} text-[10px] font-bold shrink-0">${t.priority}</span>
+                </div>
+            `).join('');
+        } catch (err) {
+            showToast('Could not load dashboard stats.', 'error');
+        }
+    }
+
+    loadDashboard();
+</script>
+{% endblock %}

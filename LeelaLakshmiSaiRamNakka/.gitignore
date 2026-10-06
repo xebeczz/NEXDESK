@@ -1,0 +1,145 @@
+# ==============================
+
+# Python
+
+# ==============================
+
+**pycache**/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# ==============================
+
+# Virtual Environment
+
+# ==============================
+
+venv/
+.venv/
+env/
+ENV/
+
+# ==============================
+
+# Packaging / Build
+
+# ==============================
+
+build/
+dist/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ==============================
+
+# Environment Variables / Secrets
+
+# ==============================
+
+.env
+.env.local
+.env.*.local
+*.env
+
+# ==============================
+
+# Database
+
+# ==============================
+
+database.db
+*.db
+*.sqlite
+*.sqlite3
+
+# ==============================
+
+# Flask / Application
+
+# ==============================
+
+instance/
+.webassets-cache/
+
+# ==============================
+
+# IDE / Editors
+
+# ==============================
+
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.code-workspace
+
+# ==============================
+
+# Testing / Coverage
+
+# ==============================
+
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+
+# ==============================
+
+# Logs
+
+# ==============================
+
+*.log
+logs/
+
+# ==============================
+
+# Jupyter Notebook
+
+# ==============================
+
+.ipynb_checkpoints/
+
+# ==============================
+
+# OS Files
+
+# ==============================
+
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ==============================
+
+# Temporary Files
+
+# ==============================
+
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+~*
