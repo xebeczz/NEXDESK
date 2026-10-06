@@ -1,0 +1,46 @@
+# ITDesk — AI Ticket Management System
+#
+# Brings up the FastAPI backend + nginx-served React frontend.
+#   docker compose up --build
+#   → Frontend: http://localhost:8080
+#   → Backend  : http://localhost:8000  (API docs at /docs)
+#
+# Config: copy backend/.env.example to backend/.env and set SECRET_KEY /
+# NVIDIA_API_KEY (AI features fall back to offline mode when the key is empty).
+services:
+  backend:
+    build: ./backend
+    container_name: itdesk-backend
+    restart: unless-stopped
+    env_file:
+      - backend/.env
+    environment:
+      # Inside the compose network the frontend is served by nginx at :8080.
+      FRONTEND_ORIGIN: "http://localhost:8080"
+      # Switch to postgres by pointing at a postgres service; sqlite is fine for
+      # small deployments and persists in the named volume below.
+      DATABASE_URL: "sqlite:////app/data/itdesk.db"
+      UPLOAD_DIR: "/app/uploads"
+    volumes:
+      - itdesk-data:/app/data
+      - itdesk-uploads:/app/uploads
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build: ./frontend
+    container_name: itdesk-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  itdesk-data:
+  itdesk-uploads:
