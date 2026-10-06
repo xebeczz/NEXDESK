@@ -1,0 +1,11 @@
+# Dev artifacts that must never ship inside the image.
+.venv/
+__pycache__/
+*.py[cod]
+*.log
+.env
+data/
+uploads/
+tests/
+.git/
+.idea/
